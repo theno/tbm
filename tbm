@@ -1,0 +1,275 @@
+#!/bin/bash
+
+# script per dot command aufrufen für verzeichniswechsel und ENV zu ändern!
+# . ./testscript.sh cd 1
+
+
+declare -A dirs
+
+BOOKMARKS="$HOME/.bookmarks"
+
+List ()
+{
+	#LoadBookmarks
+	echo "Bookmarks:"
+	for dir in "${!dirs[@]}"; do echo "$dir - ${dirs["$dir"]}"; done
+	
+}
+
+
+AddDir () 
+{
+	#echo "adde $1"
+	key="0"
+	element_pos="unknown"
+	if [ ! -z $2 ]; then
+		#geht irgendwie nicht :(
+		key=$2
+	else
+		for i in 0 9 8 7 6 5 4 3 2 1
+		do
+			element=${dirs[$i]}
+			#echo "$i x${element}x"
+			if [ -z $element ]; then
+				#echo "$i existiert noch nicht: ${dirs[$i]}"
+				key=$i
+			fi 
+			
+			if [[ "${dirs[$i]}" == "$1" ]];then
+				#echo "SET new ${dirs[$i]} to $1"
+				element_pos="$i"
+			fi
+		done
+	fi
+	#echo $key $1 >> ~/.bookmarks
+	#echo "add $1 als $key"
+	if [[ "$element_pos" == "unknown" ]]; then
+		dirs[$key]=$1
+	else
+		echo "Element already exist at: $element_pos" 
+	fi
+	#echo "test: ${dirs[$key]}"
+	#echo bla $dirs
+	SaveBookmarks
+	
+}
+
+CD ()
+{
+	echo "change to $1"
+	if [ -z ${dirs[$1]} ]; then
+		echo "Entry $1 does not exist!"
+	else
+		cd ${dirs[$1]}
+	fi
+	#echo `pwd`
+	
+}
+
+SetTerminalVariables ()
+{
+	TBM1=${dirs["1"]}
+	TBM2=${dirs["2"]}
+	TBM3=${dirs["3"]}
+	TBM4=${dirs["4"]}
+	TBM5=${dirs["5"]}
+	TBM6=${dirs["6"]}
+	TBM7=${dirs["7"]}
+	TBM8=${dirs["8"]}
+	TBM9=${dirs["9"]}
+	TBM0=${dirs["0"]}
+	
+}
+LoadBookmarks ()
+{
+	#echo "TTTEST"
+	#f=`cat .bookmarks`
+	#for line in ${f}; do echo "$line"; done
+	if [ ! -f $BOOKMARKS ]; then
+		touch $BOOKMARKS
+	fi
+	while read line; do
+		key=`echo "$line"|awk '{print $1}'`
+		path=`echo "$line"|awk '{print $2}'`
+		#echo $key $path
+		dirs[$key]=$path
+	done < $BOOKMARKS
+	
+	SetTerminalVariables
+}
+
+SaveBookmarks()
+{
+	#echo "save"
+	if [ -f $BOOKMARKS ]; then
+		rm $BOOKMARKS
+	fi
+	touch $BOOKMARKS
+	for dir in "${!dirs[@]}"; do echo "$dir ${dirs["$dir"]}" >> ${BOOKMARKS}; done
+	SetTerminalVariables
+}
+
+RM ()
+{
+	if [[ "$1" == "all" ]];then
+		unset dirs
+	else
+		unset dirs[$1]
+	fi
+	SaveBookmarks
+	
+}
+
+Menu()
+{
+	List
+	echo "Change dir to: "
+	read input
+	CD $input
+}
+
+RemoveFile()
+{
+	if [ -f $1 ]; then
+		rm $1
+	fi	
+}
+Install()
+{
+	Uninstall
+	cp ${HOME}/.bashrc ${HOME}/.bashrc_tbm_save
+	DST="$HOME/.config/tbm"
+	#script=`cat $0`
+	#touch $DST
+	#echo $script >> $DST
+	echo "Copy script to $DST"
+	cp $0 $DST
+	chmod +x $DST
+	echo "Setup .bashrc"
+	echo "#TBM_BEGIN">>~/.bashrc
+	echo "#TBM_VERSION=0">>~/.bashrc
+	echo ". $DST nothing" >> ~/.bashrc
+	#echo "alias x='. $DST mark'" >> ~/.bashrc
+	echo "x () { . $DST add \$1; }" >> ~/.bashrc
+	#echo "alias c='. $DST cd'" >> ~/.bashrc
+	echo "c () { . $DST cd \$1; }" >> ~/.bashrc
+	echo "v () { . $DST ls; }" >> ~/.bashrc
+	echo "tbm() { . $DST $1 $2; }" >> ~/.bashrc
+	echo "#TBM_END">>~/.bashrc
+	echo "Restart the terminal please!"
+	
+}
+
+Uninstall()
+{
+	write="yes"
+	while read -r line; do 
+		if [[ "$line" == "#TBM_BEGIN" ]]; then
+			write="no"
+		fi
+		if [[ "$write" == "yes" ]]; then
+			l=$(echo "$line")
+			echo $l >> ${HOME}/.bashrc_tbm_uninstall
+		fi
+		if [[ "$line" == "#TBM_END" ]]; then
+			write="yes"
+		fi	
+	done < ${HOME}/.bashrc
+	mv ${HOME}/.bashrc_tbm_uninstall ${HOME}/.bashrc
+	
+	RemoveFile ${HOME}/.bashrc_tbm_uninstall
+
+	echo "Removing tbm and bookmarks"
+	RemoveFile ${HOME}/.config/tbm
+	RemoveFile ${HOME}/.bookmarks
+	echo "Done! Restart your terminal, please!"	
+}
+
+Help ()
+{
+	echo "TERMINAL BOOKMARKER"
+	echo ""
+	echo "Parameter [nr] are optional"
+	echo "   add [nr]         - Add current directory to the bookmarks"
+	echo "   ls               - List all bookmarks"
+	echo "   cd [nr]          - Jump to bookmark"
+	echo "   clear nr         - Delete a bookmark or all with 'clear all'"
+	echo "   path nr          - Get the path as return"
+	echo "   menu             - Shows the bookmark menu"
+	echo "   install          - Install tbm in the .config directory and adds shortcuts"
+	echo "   uninstall        - Remove tbm entirely"
+	echo ""
+	echo ""
+	echo "The following features are only available after an installation"
+	echo ""
+	echo "Terminal shortcuts: "
+	echo "   Just type the character (without tbm or anything else) in your terminal"
+	echo "   x [nr]           - tbm add [nr]"
+	echo "   c [nr]           - tbm cd [nr]"
+	echo ""
+	echo "Bash variables with access to the bookmarks: "
+	echo "   TBM1,TBM2,....,TBM0 variables provide access to the bookmarked paths"
+	echo "   For example: "
+	echo "   ls \$TBM1 -> list the directory stored in bookmark 1" 
+}
+
+#clear the dirs map and reload ist from file
+unset dirs
+LoadBookmarks
+case $1 in
+    add)
+		if [ ! -z $2 ]; then
+			name=$2
+		fi
+		dir=$PWD
+        AddDir $dir $name
+        List
+        ;;
+	ls)
+		List
+		;;
+	path)
+		echo ${dirs[$2]}
+		;;
+	clear)
+		if [ -z $2 ]; then
+			RM all
+		else
+			RM $2
+		fi
+		#List
+		;;
+	cd)
+		if [ -z $2 ];then
+			Menu
+		else
+			CD $2
+		fi
+		
+		;;
+	menu)
+		Menu
+		;;
+	nothing)
+	;;
+	help)
+		Help
+		;;
+	install)
+		Install
+		;;
+	uninstall)
+		Uninstall
+		;;
+    met*|meet*)
+        ...
+        ;;
+    *)
+		echo "Unknown command: $1"
+		Help
+		;;
+        # You should have a default one too.
+esac
+
+unset dirs
+
