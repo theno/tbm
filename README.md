@@ -1,31 +1,31 @@
 # Terminal Bookmarks Manager
 
-The **terminal bookmarks manager (tbm)** is a small commandline tool which makes it
-easy to switch fast to often used directories.
+The **terminal bookmarks manager (tbm)** is a small commandline tool which makes
+it easy to switch fast to often used directories.
 
 
 ## Usage
 
-Assumption: **tbm** was installed and the `~/.bashrc` was configured as described
+Assumption: **tbm** was installed and the `~/.bashrc` was amended as described
 below.
 
 Add a bookmark:
 
     > b .
-    > b /path/to/dirname/also/possible/
+    > b /abs/path/to/dirname/
     > b ./../../relative/path
 
 Add a bookmark together with a nickname:
 
-    > b /path/to/a/unhandy/filename fn
+    > b /path/to/an/unhandy/filename fn
 
 List all bookmarks (and change the current dir):
 
     > b
     1    /abs/path/to/current/dir
-    2    /path/to/dirname/also/possible/
+    2    /abs/path/to/dirname/
     3    ./../../relative/path
-    4 fn /path/to/a/unhandy/filename
+    4 fn /path/to/an/unhandy/filename
     cd to:
 
 **tbm** now waits for your input, where it should change to. Just enter a number
@@ -61,15 +61,15 @@ This is an example bookmarks file. `~/.tbm/bookmarks`:
 
     /path/to/first/bookmark
     /second/entry/has/a/shortname sn
-    /the/third/also a
+    /the/third/also               a
     /trailing/slashes/are/okay/
 
 ### Config
 
 The configuration file of **tbm** is `~/.tbm/config`:
 
-    # If yes: Delete empty lines if an bookmarks entry was removed
+    # Delete empty lines if a bookmarks entry was removed (default: no)
     rise_in_rank = no
 
-    # First index
+    # First index (default: 1)
     first_index = 1
